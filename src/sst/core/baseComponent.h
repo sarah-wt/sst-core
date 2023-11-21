@@ -63,6 +63,7 @@ protected:
 
 public:
     BaseComponent(ComponentId_t id);
+    BaseComponent();
     virtual ~BaseComponent();
 
     const std::string& getType() const { return my_info->getType(); }
@@ -168,6 +169,8 @@ public:
      */
     double getCompletePhaseElapsedRealTime() const;
 
+    /** Create statistics report CSV file and write header */
+    void createStatReport();
 
 protected:
     /** Check to see if the run mode was set to INIT
@@ -859,7 +862,10 @@ protected:
 #endif
     Simulation*
     getSimulation() const;
-
+    // Write CSV header for statistics report
+    void createReportHeader();
+    // Append data to statistics report
+    void appendToReport(const std::string& name);
     // Does the statisticName exist in the ElementInfoStatistic
     bool    doesComponentInfoStatisticExist(const std::string& statisticName) const;
     // Return the EnableLevel for the statisticName from the ElementInfoStatistic
@@ -873,7 +879,12 @@ private:
     ComponentInfo*   my_info = nullptr;
     Simulation_impl* sim_    = nullptr;
     bool             isExtension;
+    const char*      m_Separator;
+    std::string      m_FilePath;        
+    FILE*            m_StatFile; 
 
+    bool openFile();
+    void closeFile();
     void  addSelfLink(const std::string& name);
     Link* getLinkFromParentSharedPort(const std::string& port);
 

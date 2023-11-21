@@ -24,6 +24,7 @@ REENABLE_WARNING
 #endif
 
 #include "sst/core/activity.h"
+#include "sst/core/baseComponent.h"
 #include "sst/core/config.h"
 #include "sst/core/configGraph.h"
 #include "sst/core/cputimer.h"
@@ -364,6 +365,11 @@ start_simulation(uint32_t tid, SimThreadInfo_t& info, Core::ThreadSafe::Barrier&
     // Link and puts the links in the LinkMap for each ComponentInfo.
     do_link_preparation(info.graph, sim, info.myRank, info.min_part);
     barrier.wait();
+
+    // Set up statistics report 
+    BaseComponent temp = BaseComponent();
+    temp.createStatReport();
+    temp.~BaseComponent();
 
     // Create all the simulation components
     do_graph_wireup(info.graph, sim, info.myRank, info.min_part);
