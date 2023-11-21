@@ -43,6 +43,15 @@ BaseComponent::BaseComponent(ComponentId_t id) :
         // we shouldn't reset it.
         my_info->component = this;
     }
+
+    m_FilePath = "./StatisticsReport.csv";
+    m_Separator = ", ";
+}
+
+BaseComponent::BaseComponent()
+{
+    m_FilePath = "./StatisticsReport.csv";
+    m_Separator = ", ";
 }
 
 BaseComponent::~BaseComponent()
@@ -696,12 +705,85 @@ BaseComponent::configureCollectionMode(
     statistic->setRegisteredCollectionMode(statCollectionMode);
 }
 
+void 
+BaseComponent::createReportHeader()
+{
+    std::vector<std::string> header = {"ComponentName", "StatisticName", "ParentComponentName", "SlotName", "SlotNum", "ComponentType"};
+    
+    for (size_t i = 0; i < header.size()-1; i++){
+        fprintf(m_StatFile, "%s, ", header[i].c_str());
+    }
+    fprintf(m_StatFile, "%s\n", header.back().c_str());
+}
+
+void
+BaseComponent::createStatReport(void)
+{
+    m_StatFile = fopen(m_FilePath.c_str(), "w");
+
+    if ( nullptr == m_StatFile ) {
+        // We got an error of some sort
+        Output out = Simulation_impl::getSimulation()->getSimulationOutput();
+        out.fatal(
+            CALL_INFO, 1, " : BaseComponent - Problem opening File %s - %s\n", m_FilePath.c_str(),
+            strerror(errno));
+        return;
+    }
+
+    // Create CSV header
+    createReportHeader();
+    // Close file
+    closeFile();
+}
+
+bool
+BaseComponent::openFile(void)
+{
+    m_StatFile = fopen(m_FilePath.c_str(), "a+");
+
+    if ( nullptr == m_StatFile ) {
+        // We got an error of some sort
+        Output out = Simulation_impl::getSimulation()->getSimulationOutput();
+        out.fatal(
+            CALL_INFO, 1, " : BaseComponent - Problem opening File %s - %s\n", m_FilePath.c_str(),
+            strerror(errno));
+        return false;
+    }
+
+    return true;
+}
+
+void
+BaseComponent::closeFile(void)
+{
+    fclose(m_StatFile);
+}
+
+void 
+BaseComponent::appendToReport(const std::string& name)
+{
+    // Open statistics report file
+    if ( !openFile() ) return;
+
+    fprintf(m_StatFile, "%s%s", my_info->getName().c_str(), m_Separator);
+    fprintf(m_StatFile,"%s%s", name.c_str(), m_Separator);
+    fprintf(m_StatFile, "%s%s", my_info->getParentComponentName().c_str(), m_Separator);  
+    fprintf(m_StatFile, "%s%s", my_info->getSlotName().c_str(), m_Separator);
+    fprintf(m_StatFile, "%s%s", std::to_string(my_info->getSlotNum()).c_str(), m_Separator);
+    fprintf(m_StatFile, "%s", my_info->getType().c_str());
+    fprintf(m_StatFile, "\n");
+
+    // Close file
+    closeFile();
+}
+
 Statistics::StatisticBase*
 BaseComponent::createStatistic(
     Params& cpp_params, const Params& python_params, const std::string& name, const std::string& subId,
     bool check_load_level, StatCreateFunction fxn)
 {
     auto* engine = getStatEngine();
+    appendToReport(name);
 
     if ( check_load_level ) {
         uint8_t my_load_level = getStatisticLoadLevel();
