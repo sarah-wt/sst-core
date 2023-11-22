@@ -45,13 +45,13 @@ BaseComponent::BaseComponent(ComponentId_t id) :
     }
 
     m_FilePath = "./StatisticsReport.csv";
-    m_Separator = ", ";
+    m_Separator = ",";
 }
 
 BaseComponent::BaseComponent()
 {
     m_FilePath = "./StatisticsReport.csv";
-    m_Separator = ", ";
+    m_Separator = ",";
 }
 
 BaseComponent::~BaseComponent()
@@ -711,7 +711,7 @@ BaseComponent::createReportHeader()
     std::vector<std::string> header = {"ComponentName", "StatisticName", "ParentComponentName", "SlotName", "SlotNum", "ComponentType"};
     
     for (size_t i = 0; i < header.size()-1; i++){
-        fprintf(m_StatFile, "%s, ", header[i].c_str());
+        fprintf(m_StatFile, "%s,", header[i].c_str());
     }
     fprintf(m_StatFile, "%s\n", header.back().c_str());
 }
