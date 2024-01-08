@@ -244,6 +244,12 @@ do_link_preparation(ConfigGraph* graph, SST::Simulation_impl* sim, const RankInf
     sim->prepareLinks(*graph, myRank, min_part);
 }
 
+static void
+do_statreport_creation(SST::Simulation_impl* sim)
+{
+    sim->createStatReport();
+}
+
 // Returns the extension, or an empty string if there was no extension
 static std::string
 addRankToFileName(std::string& file_name, int rank)
@@ -369,6 +375,11 @@ start_simulation(uint32_t tid, SimThreadInfo_t& info, Core::ThreadSafe::Barrier&
     do_graph_wireup(info.graph, sim, info.myRank, info.min_part);
     barrier.wait();
 
+    // Create statistics report
+    g_output.output("MAIN!: After creating all simulation components with graph wireup\n");
+    do_statreport_creation(sim);
+    barrier.wait();
+
     if ( tid == 0 ) { delete info.graph; }
 
     force_rank_sequential_stop(info.config->rank_seq_startup(), info.myRank, info.world_size);
@@ -454,6 +465,10 @@ start_simulation(uint32_t tid, SimThreadInfo_t& info, Core::ThreadSafe::Barrier&
         /* Finalize all the stat outputs */
         do_statoutput_start_simulation(info.myRank);
         barrier.wait();
+
+        // g_output.output("MAIN: After finalizing stat outputs...\n");
+        // do_statreport_creation(sim);
+        // barrier.wait();
 
         /* Run Simulation */
         sim->run();

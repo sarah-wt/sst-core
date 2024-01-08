@@ -65,6 +65,10 @@ public:
     BaseComponent(ComponentId_t id);
     virtual ~BaseComponent();
 
+    // const std::string& getOrigName() const { return origCompName; }
+
+    // const std::map<ComponentId_t, ComponentInfo> getSubComponents() { return my_info->getSubComponents(); }
+
     const std::string& getType() const { return my_info->getType(); }
 
     /** Returns unique component ID */
@@ -834,10 +838,13 @@ public:
 
     /** Retrieve the X,Y,Z coordinates of this component */
     const std::vector<double>& getCoordinates() const { return my_info->coordinates; }
+    
+    SST::ComponentInfo* getInfo() { return my_info; }
 
 protected:
     friend class SST::Statistics::StatisticProcessingEngine;
     friend class SST::Statistics::StatisticBase;
+    friend class SST::Simulation_impl;
 
     bool isAnonymous() { return my_info->isAnonymous(); }
 
@@ -860,6 +867,13 @@ protected:
     Simulation*
     getSimulation() const;
 
+    bool addToStatReportMap(std::string component, std::string parent, std::string slot, std::string type, std::string stat);
+    using StatNameMap = std::map<std::string, std::map<std::string, Statistics::StatisticBase*>>;
+
+    StatNameMap& getEnabledAllStats() { return m_enabledAllStats; }
+    std::map<StatisticId_t, StatNameMap>& getExplicitlyEnabledUniqueStats() { return m_explicitlyEnabledUniqueStats; }    
+    std::map<StatisticId_t, Statistics::StatisticBase*>& getExplicitlyEnabledSharedStats() { return m_explicitlyEnabledSharedStats; } 
+    // SST::ComponentInfo* getInfo() { return my_info; }
     // Does the statisticName exist in the ElementInfoStatistic
     bool    doesComponentInfoStatisticExist(const std::string& statisticName) const;
     // Return the EnableLevel for the statisticName from the ElementInfoStatistic
@@ -871,13 +885,14 @@ protected:
 
 private:
     ComponentInfo*   my_info = nullptr;
+    // std::string origCompName;
     Simulation_impl* sim_    = nullptr;
     bool             isExtension;
 
     void  addSelfLink(const std::string& name);
     Link* getLinkFromParentSharedPort(const std::string& port);
 
-    using StatNameMap = std::map<std::string, std::map<std::string, Statistics::StatisticBase*>>;
+    // using StatNameMap = std::map<std::string, std::map<std::string, Statistics::StatisticBase*>>;
 
     std::map<StatisticId_t, Statistics::StatisticBase*> m_explicitlyEnabledSharedStats;
     std::map<StatisticId_t, StatNameMap>                m_explicitlyEnabledUniqueStats;
@@ -923,6 +938,7 @@ public:
         }
     }
 
+    const std::string& getCompName() const { return comp->getName(); }
     const std::string& getSlotName() const { return slot_name; };
 
     bool isPopulated(int slot_num) const
