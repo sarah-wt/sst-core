@@ -247,7 +247,7 @@ do_link_preparation(ConfigGraph* graph, SST::Simulation_impl* sim, const RankInf
 static void
 do_statreport_creation(SST::Simulation_impl* sim)
 {
-    sim->createStatReport();
+    sim->createStatisticsReport();
 }
 
 // Returns the extension, or an empty string if there was no extension
@@ -376,7 +376,6 @@ start_simulation(uint32_t tid, SimThreadInfo_t& info, Core::ThreadSafe::Barrier&
     barrier.wait();
 
     // Create statistics report
-    g_output.output("MAIN!: After creating all simulation components with graph wireup\n");
     do_statreport_creation(sim);
     barrier.wait();
 
@@ -465,10 +464,6 @@ start_simulation(uint32_t tid, SimThreadInfo_t& info, Core::ThreadSafe::Barrier&
         /* Finalize all the stat outputs */
         do_statoutput_start_simulation(info.myRank);
         barrier.wait();
-
-        // g_output.output("MAIN: After finalizing stat outputs...\n");
-        // do_statreport_creation(sim);
-        // barrier.wait();
 
         /* Run Simulation */
         sim->run();

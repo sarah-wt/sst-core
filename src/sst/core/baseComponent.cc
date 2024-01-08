@@ -43,10 +43,6 @@ BaseComponent::BaseComponent(ComponentId_t id) :
         // we shouldn't reset it.
         my_info->component = this;
     }
-
-    // origCompName = my_info->getName();
-    // Simulation_impl::getSimulationOutput().output("Init BaseComp: %s\n", origCompName.c_str());
-
 }
 
 BaseComponent::~BaseComponent()
@@ -700,44 +696,12 @@ BaseComponent::configureCollectionMode(
     statistic->setRegisteredCollectionMode(statCollectionMode);
 }
 
-bool
-BaseComponent::addToStatReportMap(std::string component, std::string parent, std::string slot, std::string type, std::string stat)
-{
-    // check if map contains an entry for this component name
-    // SST::Simulation* sim_ = getSimulation();
-    // if ( sim_->getStatReportMap().find(component) == sim_->getStatReportMap().end() ) {
-    //     // this component name has not been registered
-    //     return false;
-    // }
-    return false;
-}
-
 Statistics::StatisticBase*
 BaseComponent::createStatistic(
     Params& cpp_params, const Params& python_params, const std::string& name, const std::string& subId,
     bool check_load_level, StatCreateFunction fxn)
 {
     auto* engine = getStatEngine();
-    // // origCompName = my_info->getName();
-    // Simulation_impl::getSimulationOutput().output("This is origCompName before trying to assign it: %s\n", my_info->getName().c_str());
-    // // if (origCompName.empty()) {
-    // //     origCompName = my_info->getName();
-    // //     Simulation_impl::getSimulationOutput().output("This is origCompName after trying to assign it: %s\n", my_info->getName().c_str());
-    // // }
-
-    // std::string compName = my_info->getName();
-    // std::string parentName = my_info->getParentComponentName();
-    // std::string slotName = my_info->getSlotName();
-    // std::string typeName = my_info->getType();
-    // addToStatReportMap(compName, parentName, slotName, typeName, name);
-
-    // Simulation_impl::getSimulationOutput().output("CreateStatistic ------------------------------\n");
-    Simulation_impl::getSimulationOutput().output("CreateStatistic CompName: %s-%s\n", my_info->getName().c_str(),name.c_str());
-    // Simulation_impl::getSimulationOutput().output("StatName: %s\n", name.c_str());
-    // Simulation_impl::getSimulationOutput().output("ParentName: %s\n", my_info->getParentComponentName().c_str());  
-    // Simulation_impl::getSimulationOutput().output("SlotName:%s \n", my_info->getSlotName().c_str());
-    // Simulation_impl::getSimulationOutput().output("SlotNum:%s\n", std::to_string(my_info->getSlotNum()).c_str());
-    // Simulation_impl::getSimulationOutput().output("Type:%s\n", my_info->getType().c_str());
 
     if ( check_load_level ) {
         uint8_t my_load_level = getStatisticLoadLevel();
@@ -784,27 +748,8 @@ BaseComponent::createEnabledAllStatistic(
     }
 
     // a matching statistic was not found
-    Output& out = Simulation_impl::getSimulationOutput();
-    out.output("createStatistic: m_enabledAllStats\n");
     auto* stat = createStatistic(params, my_info->allStatConfig->params, name, statSubId, true, std::move(fxn));
     m_enabledAllStats[name][statSubId] = stat;
-    // out.output("name and statsubId: %s-%s\n", name.c_str(), statSubId.c_str());
-    // // std::map<std::string, std::map<std::string, Statistics::StatisticBase*>>;
-    // out.output("what's inside m_enabledAllStats.......\n");
-    // for ( const auto& outerPair : m_enabledAllStats) {
-    //     const std::string& outerKey = outerPair.first;
-    //     const std::map<std::string, Statistics::StatisticBase*>& innerMap = outerPair.second;
-    //     out.output("Outer key: %s\n", outerKey.c_str());
-
-    //     // auto submap = iter.second;
-    //     for ( const auto& innerPair: innerMap) {
-    //         const std::string& innerKey = innerPair.first;
-    //         out.output("Inner key: %s\n", innerKey.c_str());
-    //         Statistics::StatisticBase* innerValue = innerPair.second;
-    //         out.output("Auto enabled stat here2: %s\n", innerValue->getStatName().c_str());
-
-    //     }
-    // }
     return stat;
 }
 
@@ -830,14 +775,8 @@ BaseComponent::createExplicitlyEnabledStatistic(
         if ( iter != m_explicitlyEnabledSharedStats.end() ) { return iter->second; }
         else {
             // no subid
-            out.output("createStatistic: m_explicitlyEnabledSharedStats\n");
             auto* stat = createStatistic(params, cfg.params, cfg.name, "", false, std::move(fxn));
             m_explicitlyEnabledSharedStats[id] = stat;
-            // for ( const auto& outerPair : m_explicitlyEnabledSharedStats) {
-            //     const std::string& outerKey = outerPair.first;
-            //     const std::map<std::string, Statistics::StatisticBase*>& innerMap = outerPair.second;
-            //     out.output("Outer key: %s\n", outerKey.c_str());
-            // }
             return stat;
         }
     }
@@ -853,7 +792,6 @@ BaseComponent::createExplicitlyEnabledStatistic(
             }
         }
         // stat does not exist yet
-        out.output("createStatistic: m_explicitlyEnabledUniqueStats\n");
         auto* stat = createStatistic(params, cfg.params, name, statSubId, false, std::move(fxn));
         m_explicitlyEnabledUniqueStats[id][name][statSubId] = stat;
         return stat;

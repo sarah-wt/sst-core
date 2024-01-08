@@ -50,7 +50,6 @@ class SimulatorHeartbeat;
 class Link;
 class LinkMap;
 class Params;
-class StatisticReportInfo;
 class SharedRegionManager;
 class SimulatorHeartbeat;
 class SyncBase;
@@ -73,7 +72,6 @@ class StatisticProcessingEngine;
  */
 class Simulation_impl : public Simulation
 {
-    friend class SubComponentSlotInfo;
 
 public:
     /********  Public API inherited from Simulation ********/
@@ -172,10 +170,9 @@ public:
     int  prepareLinks(ConfigGraph& graph, const RankInfo& myRank, SimTime_t min_part);
     int  performWireUp(ConfigGraph& graph, const RankInfo& myRank, SimTime_t min_part);
     void exchangeLinkInfo();
-    void createStatReport();
-    // void writeComponentInfo(const SST::ComponentInfo& compInfo, bool last=false);
+    /** Generate JSON report containing component and statistic info */
+    void createStatisticsReport();
     void writeComponentInfo(const SST::ComponentInfo *const compInfo);
-    std::map<std::string, StatisticReportInfo> getStatRSeportMap() { return statisticReportMap; }
 
     /** Set cycle count, which, if reached, will cause the simulation to halt. */
     void setStopAtCycle(Config* cfg);
@@ -518,7 +515,7 @@ private:
 
     FILE*       statFile;
     std::string filePath;
-    std::map<std::string, StatisticReportInfo> statisticReportMap;
+    int         curIndentLevel;
 
 private:
     /**
@@ -526,27 +523,7 @@ private:
      * that is in the TImeVortex of the Simulation
      */
     SimTime_t getNextActivityTime() const;
-    int         curIndentLevel;
-};
-
-class StatisticReportInfo
-{
-    // std::string componentName;
-    std::string parentName;
-    std::string slotName;
-    std::string typeName;
-    std::vector<std::string> allStats;
-
-public: 
-    StatisticReportInfo(std::string parent, std::string slot, std::string type, std::string stat) 
-    {
-        parentName = parent;
-        slotName = slot;
-        typeName = type;
-        allStats.push_back(stat);
-    }
-
-    ~StatisticReportInfo() {}
+    
 };
 
 // Function to allow for easy serialization of threads while debugging

@@ -474,46 +474,32 @@ Simulation_impl::prepareLinks(ConfigGraph& graph, const RankInfo& myRank, SimTim
 
 void 
 Simulation_impl::writeComponentInfo(const SST::ComponentInfo *const compInfo) 
-// Simulation_impl::writeComponentInfo(const SST::ComponentInfo& compInfo, bool last) 
 {
-    sim_output.output("WRITING COMPINFO\n");
-
     // Output component info to statistic report
     printIndent();
     fprintf(statFile, "{\n");
     curIndentLevel++;
     printIndent();
     fprintf(statFile, "\"ComponentName\" : \"%s\",\n", compInfo->getName().c_str());
-    sim_output.output("ComponentName: %s\n", compInfo->getName().c_str());
     printIndent();
     fprintf(statFile, "\"ParentName\" : \"%s\",\n", compInfo->getParentComponentName().c_str());
-    sim_output.output("ParentName: %s\n", compInfo->getParentComponentName().c_str());
     printIndent();
     fprintf(statFile, "\"SlotName\" : \"%s\",\n", compInfo->getSlotName().c_str());
-    sim_output.output("SlotName: %s\n", compInfo->getSlotName().c_str());
     printIndent();
     // fprintf(statFile, "\"SlotNum\" : %d,\n", compInfo.getSlotNum());
     // printIndent();
     fprintf(statFile, "\"ComponentType\" : \"%s\",\n", compInfo->getType().c_str());
-    sim_output.output("ComponentType: %s\n", compInfo->getType().c_str());
     printIndent();
     fprintf(statFile, "\"Statistics\" : [\n");
     curIndentLevel++; 
 
-    // Two paths: stats are all enabled or they are explicitly enabled
-    sim_output.output("beginning two paths....enableAll=%d\n", compInfo->enabledAllStats);
+    // Two paths: if stats exist, they are either all enabled or they are explicitly enabled
     if (compInfo->enabledAllStats) {
-        sim_output.output("\tall stats enabled\n");
-        // const std::vector<std::string> & statNames = SST:ELI::ProvidesStats::getStatnames();
         SST::BaseComponent* comp = compInfo->getComponent();
-        // const std::vector<std::string> & statNames = comp.
-        // comp->getExplicitlyEnabledSharedStats();
-        // comp->getExplicitlyEnabledUniqueStats();
         using StatNameMap = std::map<std::string, std::map<std::string, Statistics::StatisticBase*>>;
         StatNameMap allEnabledStats = comp->getEnabledAllStats();
-        // for ( auto& outer_iter : allEnabledStats) {
+
         for ( auto outer_iter = allEnabledStats.begin(); outer_iter != allEnabledStats.end(); outer_iter++ ) {
-            sim_output.output("\t\toutput statname: %s\n", outer_iter->first.c_str());
             // Output StatName
             printIndent(); 
             fprintf(statFile, "{\n");
@@ -525,21 +511,12 @@ Simulation_impl::writeComponentInfo(const SST::ComponentInfo *const compInfo)
             fprintf(statFile, "\"StatSubIds\" : [\n");
             curIndentLevel++;
             auto submap = outer_iter->second;
-            // for ( auto& inner_iter : submap) {
             for ( auto inner_iter = submap.begin(); inner_iter != submap.end(); inner_iter++ ){
-                // sim_output.output("\t\tstatsubid\n");
                 auto statBase = inner_iter->second;
-                sim_output.output("\t\t\tAuto enabled stat here2 StatName: %s\n", statBase->getStatName().c_str());
                 printIndent();
-                // fprintf(statFile, "\"%s\"", statBase->getStatName().c_str());
-                // fprintf(statFile, "\"%s\"", statBase->getStatSubId().c_str());
-                sim_output.output("\t\t\tAuto enabled stat here3 StatSubId: %s\n", statBase->getStatSubId().c_str());
-
                 if (std::next(inner_iter) != submap.end()){
-                    // sim_output.output("STATNAMES NOT DONE: %s\n", statBase->getStatName().c_str());
                     fprintf(statFile, "\"%s\",\n", statBase->getStatSubId().c_str());
                 } else {
-                    // sim_output.output("STATNAMES are done: %s\n", statBase->getStatName().c_str());
                     fprintf(statFile, "\"%s\"\n", statBase->getStatSubId().c_str());
                     curIndentLevel--;
                     printIndent();
@@ -548,7 +525,6 @@ Simulation_impl::writeComponentInfo(const SST::ComponentInfo *const compInfo)
                     printIndent();
                     fprintf(statFile, "}");
                 }
-                
             }
             if (std::next(outer_iter) != allEnabledStats.end()){
                 fprintf(statFile, ",\n");
@@ -556,86 +532,40 @@ Simulation_impl::writeComponentInfo(const SST::ComponentInfo *const compInfo)
                 fprintf(statFile, "\n");
             }
         }
-        
     } else {
         // Output explicitly enabled statistics
-        sim_output.output("\texplicitly enabled stats\n");
         std::map<std::string, StatisticId_t> *statmap = compInfo->enabledStatNames;
         if (statmap != nullptr) {
             for ( auto stat_iter = statmap->begin(); stat_iter != statmap->end(); stat_iter++ ) {
                 printIndent();
-                sim_output.output("\t\tExplicit enable stat here StatName: %s\n", stat_iter->first.c_str());
+                fprintf(statFile, "{\n");
+                curIndentLevel++;
+                printIndent();
+                fprintf(statFile, "\"StatName\" : \"%s\",\n", stat_iter->first.c_str());
+                printIndent();
+                fprintf(statFile, "\"StatSubIds\" : []\n");
+                curIndentLevel--;
+                printIndent();
                 if (std::next(stat_iter) != statmap->end()){
-                    fprintf(statFile, "\"%s\",\n", stat_iter->first.c_str());
+                    fprintf(statFile, "},\n");
                 } else {
-                    fprintf(statFile, "\"%s\"\n", stat_iter->first.c_str());
+                    fprintf(statFile, "}\n");
                 } 
             }
-        } else {
-            sim_output.output("NULLPTR\n");
-        }
-
-        
+        } 
     }
-
-    
 
     curIndentLevel--;
     printIndent();
     fprintf(statFile, "]\n");
-
     curIndentLevel--;
     printIndent();
-    // if (std::next(iter) != compInfoMap.end()) {
     fprintf(statFile, "}");
-    // } else {
-    //     fprintf(statFile, "}\n");
-    // }
-    
 }
 
 void
-Simulation_impl::createStatReport(void)
+Simulation_impl::createStatisticsReport(void)
 {
-    // SST::Statistics::StatisticProcessingEngine*   statArray;
-    // SST::Statistics::StatisticBase* stat;
-
-    // Output Event based statistics
-    // for ( SST::Statistics::StatisticProcessingEngine::StatArray_t::iterator it_v = stat_engine.m_EventStatisticArray.begin(); it_v != stat_engine.m_EventStatisticArray.end(); it_v++ ) {
-    //     stat = *it_v;
-    //     // performStatisticOutputImpl(stat, endOfSimFlag);
-    // }
-
-    // sim_output.output("IM TRYNA GET EVENTSTATARRAY BRUH \n");
-    // for ( auto& stat : stat_engine.m_EventStatisticArray ) {
-    //     // stat->getCompName()
-    //     sim_output.output("EventStatisticArray Component Name: %s\n", stat->getCompName().c_str());
-    // }
-
-    
-
-    // Output Periodic based statistics
-    // for ( SST::Statistics::StatisticProcessingEngine::StatMap_t::iterator it_m = stat_engine.m_PeriodicStatisticMap.begin(); it_m != stat_engine.addPeriodicBasedStatistic.end(); it_m++ ) {
-    //     statArray = it_m->second;
-
-    //     for ( SST::Statistics::StatisticProcessingEngine::StatArray_t::iterator it_v = statArray->begin(); it_v != statArray->end(); it_v++ ) {
-    //         stat = *it_v;
-    //         // performStatisticOutputImpl(stat, endOfSimFlag);
-    //     }
-    // }
-
-    // for ( auto& sg : stat_engine.m_statGroups ) {
-    //     // performStatisticGroupOutputImpl(sg, endOfSimFlag);
-    // }
-    // stat_engine.m_EventStatisticArray;
-    // stat_engine.m_PeriodicStatisticMap;
-    // stat_engine.m_statGroups;
-
-    // m_currentComponentName  = statistic->getCompName();
-    // m_currentStatisticName  = statistic->getStatName();
-    // m_currentStatisticSubId = statistic->getStatSubId();
-    // m_currentStatisticType  = statistic->getStatTypeName();
-
     // Open statistics report file
     if ( !openFile() ) return;
 
@@ -645,147 +575,21 @@ Simulation_impl::createStatReport(void)
     fprintf(statFile, "\"AllComponents\" : [\n");
     curIndentLevel++;
 
-    // Iterate through all components 
     for ( auto iter = compInfoMap.begin(); iter != compInfoMap.end(); iter++ ) {
-        // const SST::ComponentInfo* compInfo = (*iter);
-        
-
         // Output subcomponent info
         const std::map<ComponentId_t, ComponentInfo>& subComponents = (*iter)->subComponents;
-        // for ( auto& sub_iter : subComponents ) {
-        // for ( auto& sub_iter = subComponents.begin(); sub_iter != subComponents.end(); sub_iter++ ) {
-            // writeComponentInfo(sub_iter.second);
+
         for ( const auto& sub_iter : subComponents ) {
             writeComponentInfo(&(sub_iter.second));
-            fprintf(statFile, ",\n");
-            // sim_output.output("SUBCOMP MAP2 Name: %s\n", sub_iter.second.getName().c_str());
-            // sim_output.output("SUBCOMP MAP2 Type: %s\n", sub_iter.second.getType().c_str());
-            // fprintf(statFile, "\"ComponentName2\" : \"%s\",\n", sub_iter.second.getName().c_str());
-            // printIndent();
-            // fprintf(statFile, "\"ComponentType2\" : \"%s\",\n", sub_iter.second.getType().c_str());
-            // printIndent();
-            
+            fprintf(statFile, ",\n");   
         }
         // Output (parent) component info
         writeComponentInfo(*iter);
-        // fprintf(statFile, ",\n");
-        // printIndent();
-        // fprintf(statFile, "{\n");
-        // curIndentLevel++;
-       
-        // Print component info
-        // printIndent();
-        // NEED TO GET THE FULL NAME
-        // SST::ComponentId_t id = (*iter)->getID();
-        // SST::BaseComponent* comp = (*iter)->getComponent();
-        // std::string baseName = (*iter)->getComponent()->getName();
-        // std::string baseType = (*iter)->getComponent()->getType();
-        // std::string baseParentName = (*iter)->getComponent()->getParentComponentName();
-        // SST::ComponentInfo* my_info = comp->getInfo();
-        // std::map<ComponentId_t, ComponentInfo>& subcompMap = my_info->getSubComponents();
-        // for (auto& sub : subcompMap){
-        //     std::string subcompName = sub.second.getName();
-        //     std::string subcompType = sub.second.getType();
-        //     sim_output.output("SubCompName: %s\n", subcompName.c_str());
-        //     sim_output.output("SubCompType: %s\n", subcompType.c_str());
-
-        // }
-
-        
-        // std::string baseName2 = comp->getOrigName();
-        // const std::map<ComponentId_t, ComponentInfo>& subcomps = comp->getSubComponents();
-
-        // for ( auto& ci : subcomps ) {
-        //     sim_output.output("omg i hope to God that this is it: %s\n", ci.second.getName().c_str());
-        // }
-
-        // sim_output.output("IM TRYNA GET SubComponentSlotInfo \n");
-        // SubComponentSlotInfo* subInfo = comp->getSubComponentSlotInfo((*iter)->getSlotName());
-        // std::string subCompName = subInfo->getCompName();
-        // sim_output.output("------------SubCompName: %s\n", subCompName);
-        // sim_output.output("Base Component Name: %s\n", baseName.c_str());
-        // sim_output.output("OHH SHOOT??? Base Component Name: %s\n", baseName2.c_str());
-        // sim_output.output("Base Component Type: %s\n", baseType.c_str());
-        // sim_output.output("Base Component Parent Name: %s\n", baseParentName.c_str());
-
-        // fprintf(statFile, "\"ComponentName\" : \"%s\",\n", (*iter)->getName().c_str());
-        // printIndent();
-        // fprintf(statFile, "\"ParentName\" : \"%s\",\n", (*iter)->getParentComponentName().c_str());
-        // printIndent();
-        // fprintf(statFile, "\"SlotName\" : \"%s\",\n", (*iter)->getSlotName().c_str());
-        // printIndent();
-        // // fprintf(statFile, "\"SlotNum\" : %d,\n", (*iter)->getSlotNum());
-        // // printIndent();
-        // fprintf(statFile, "\"ComponentType\" : \"%s\",\n", (*iter)->getType().c_str());
-        // printIndent();
-        // fprintf(statFile, "\"StatisticNames\" : [\n");
-        // curIndentLevel++; 
-
-        // Output enabled statistics
-        // Enabled all stats
-        // EnableAllStats = true then get default params
-
-        // SST::BaseComponent* comp = (*iter)->getComponent();
-        // // const std::vector<std::string> & statNames = comp.
-        // // comp->getExplicitlyEnabledSharedStats();
-        // // comp->getExplicitlyEnabledUniqueStats();
-        // using StatNameMap = std::map<std::string, std::map<std::string, Statistics::StatisticBase*>>;
-        // StatNameMap allEnabledStatsBASE = comp->getEnabledAllStats();
-        // // const std::vector<std::string> & statNames = comp.
-        // // comp->getExplicitlyEnabledSharedStats();
-        // // comp->getExplicitlyEnabledUniqueStats();
-        // using StatNameMap = std::map<std::string, std::map<std::string, Statistics::StatisticBase*>>;
-        // StatNameMap allEnabledStats = comp->getEnabledAllStats();
-        // for ( auto& outer_iter : allEnabledStatsBASE) {
-        //     auto submap = outer_iter.second;
-        //     for ( auto& inner_iter : submap) {
-        //         auto statBase = inner_iter.second;
-        //         sim_output.output("Auto enabled stat here: %s\n", statBase->getStatName().c_str());
-        //         printIndent();
-        //         fprintf(statFile, "\"%s\",\n", statBase->getStatName().c_str());
-        //     }
-        // }
-        
-    
-        // // if ((*iter)->enabledAllStats) {
-        // //     sim_output.output("OHHH SHOOOT all stats were enabled by: %s\n", (*iter)->getName().c_str());
-        // // }
-
-        // // Explicitly enabled stats
-        // std::map<std::string, StatisticId_t> *statmap = (*iter)->enabledStatNames;
-        // for ( auto stat_iter = statmap->begin(); stat_iter != statmap->end(); stat_iter++ ) {
-        //     printIndent();
-        //     if (std::next(stat_iter) != statmap->end()){
-        //         fprintf(statFile, "\"%s\",\n", stat_iter->first.c_str());
-        //     } else {
-        //         fprintf(statFile, "\"%s\"\n", stat_iter->first.c_str());
-        //     } 
-        // }
-
-        
-
-        // curIndentLevel--;
-        // printIndent();
-        // fprintf(statFile, "]\n");
-
-        // curIndentLevel--;
-        // printIndent();
-        // if (std::next(iter) != compInfoMap.end()) {
-        //     fprintf(statFile, "},\n");
-        // } else {
-        //     fprintf(statFile, "}\n");
-        // }
-
-        
-
-        // curIndentLevel--;
-        // printIndent();
         if (std::next(iter) != compInfoMap.end()) {
             fprintf(statFile, ",\n");
         } else {
             fprintf(statFile, "\n");
         }
-    
     }
 
     curIndentLevel--;
@@ -797,33 +601,6 @@ Simulation_impl::createStatReport(void)
 
     // Close file
     closeFile();
-
-
-    // stat_engine.statreport(this);
-    // for ( ConfigLinkMap_t::const_iterator iter = compInfoMap.begin(); iter != compInfoMap.end(); ++iter ) {}
-    // for ( auto iter : compInfoMap ) {
-    //     std::string compName = iter->getName();
-    //     std::string parentName = iter->getParentComponentName();
-    //     std::string slotName = iter->getSlotName();
-    //     std::string slotNum = std::to_string(iter->getSlotNum());
-    //     std::string type = iter->getType();
-    //     // std::string loadLevel = std::to_string(iter->getStatisticLoadLevel());
-    //     // std::string compID = std::to_string(iter->getID());
-    //     std::map<std::string, StatisticId_t>* statmap = iter->enabledStatNames;
-    //     // SST::ConfigComponentNameMap_t statmap = iter->enabledStatNames;
-    //     for ( const auto& stat_iter : *statmap ) {
-    //         sim_output.output("idk what this is lmao: %s\n", stat_iter.first.c_str());
-    //         // sim_output.output("idk what this is either: %s\n", std::to_string(stat_iter.second).c_str());
-    //     }
-    //     sim_output.output("compName: %s\n", compName.c_str());
-    //     sim_output.output("parentName: %s\n", parentName.c_str());
-    //     sim_output.output("slotName: %s\n", slotName.c_str());
-    //     sim_output.output("slotNum: %s\n", slotNum.c_str());
-    //     sim_output.output("type: %s\n", type.c_str());
-    //     // sim_output.output("compID: %s\n", compID.c_str());
-    //     // sim_output.output("loadLevel: %s\n", loadLevel.c_str());
-    //     sim_output.output("-------------------------------------\n");
-    // }
 }
 
 bool
@@ -854,7 +631,6 @@ Simulation_impl::printIndent()
         fprintf(statFile, "   ");
     }
 }
-
 
 int
 Simulation_impl::performWireUp(ConfigGraph& graph, const RankInfo& myRank, SimTime_t UNUSED(min_part))
