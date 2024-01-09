@@ -172,6 +172,7 @@ public:
     void exchangeLinkInfo();
     /** Generate JSON report containing component and statistic info */
     void createStatisticsReport();
+    void getSubComponentInfo(const std::map<ComponentId_t, ComponentInfo> *const subComponents);
     void writeComponentInfo(const SST::ComponentInfo *const compInfo);
 
     /** Set cycle count, which, if reached, will cause the simulation to halt. */

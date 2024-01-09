@@ -564,6 +564,19 @@ Simulation_impl::writeComponentInfo(const SST::ComponentInfo *const compInfo)
 }
 
 void
+Simulation_impl::getSubComponentInfo(const std::map<ComponentId_t, ComponentInfo> *const subComponents) {
+    for ( auto iter = subComponents->begin(); iter != subComponents->end(); iter++ ) {
+        if (&(iter->second.subComponents) != nullptr) {
+            getSubComponentInfo(&(iter->second.subComponents));
+            writeComponentInfo(&(iter->second));
+        } else {
+            writeComponentInfo(&(iter->second));
+        }  
+        fprintf(statFile, ",\n");
+    }
+}
+
+void
 Simulation_impl::createStatisticsReport(void)
 {
     // Open statistics report file
@@ -578,11 +591,7 @@ Simulation_impl::createStatisticsReport(void)
     for ( auto iter = compInfoMap.begin(); iter != compInfoMap.end(); iter++ ) {
         // Output subcomponent info
         const std::map<ComponentId_t, ComponentInfo>& subComponents = (*iter)->subComponents;
-
-        for ( const auto& sub_iter : subComponents ) {
-            writeComponentInfo(&(sub_iter.second));
-            fprintf(statFile, ",\n");   
-        }
+        getSubComponentInfo(&subComponents);
         // Output (parent) component info
         writeComponentInfo(*iter);
         if (std::next(iter) != compInfoMap.end()) {
