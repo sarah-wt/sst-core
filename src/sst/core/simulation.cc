@@ -39,6 +39,8 @@
 #include "sst/core/warnmacros.h"
 
 #include <cinttypes>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <utility>
 
 #define SST_SIMTIME_MAX 0xffffffffffffffff
@@ -198,7 +200,7 @@ Simulation_impl::Simulation_impl(Config* cfg, RankInfo my_rank, RankInfo num_ran
     // Need to create the thread sync if there is more than one thread
     if ( num_ranks.thread > 1 ) {}
 
-    filePath = "./StatisticsReport.json";
+    filePath = "./StatReports/";
     curIndentLevel = 0;
 }
 
@@ -473,7 +475,7 @@ Simulation_impl::prepareLinks(ConfigGraph& graph, const RankInfo& myRank, SimTim
 }
 
 void 
-Simulation_impl::writeComponentInfo(const SST::ComponentInfo *const compInfo) 
+Simulation_impl::writeComponentInfo(const SST::ComponentInfo *const compInfo, const RankInfo& myRank) 
 {
     // Output component info to statistic report
     printIndent();
@@ -486,8 +488,8 @@ Simulation_impl::writeComponentInfo(const SST::ComponentInfo *const compInfo)
     printIndent();
     fprintf(statFile, "\"SlotName\" : \"%s\",\n", compInfo->getSlotName().c_str());
     printIndent();
-    // fprintf(statFile, "\"SlotNum\" : %d,\n", compInfo.getSlotNum());
-    // printIndent();
+    fprintf(statFile, "\"Rank\" : %d,\n", myRank.rank);
+    printIndent();
     fprintf(statFile, "\"ComponentType\" : \"%s\",\n", compInfo->getType().c_str());
     printIndent();
     fprintf(statFile, "\"Statistics\" : [\n");
@@ -564,23 +566,23 @@ Simulation_impl::writeComponentInfo(const SST::ComponentInfo *const compInfo)
 }
 
 void
-Simulation_impl::getSubComponentInfo(const std::map<ComponentId_t, ComponentInfo> *const subComponents) {
+Simulation_impl::getSubComponentInfo(const std::map<ComponentId_t, ComponentInfo> *const subComponents, const RankInfo& myRank) {
     for ( auto iter = subComponents->begin(); iter != subComponents->end(); iter++ ) {
         if (&(iter->second.subComponents) != nullptr) {
-            getSubComponentInfo(&(iter->second.subComponents));
-            writeComponentInfo(&(iter->second));
+            getSubComponentInfo(&(iter->second.subComponents), myRank);
+            writeComponentInfo(&(iter->second), myRank);
         } else {
-            writeComponentInfo(&(iter->second));
+            writeComponentInfo(&(iter->second), myRank);
         }  
         fprintf(statFile, ",\n");
     }
 }
 
 void
-Simulation_impl::createStatisticsReport(void)
+Simulation_impl::createStatisticsReport(const RankInfo& myRank)
 {
     // Open statistics report file
-    if ( !openFile() ) return;
+    if ( !openFile(myRank) ) return;
 
     fprintf(statFile, "{\n");
     curIndentLevel++;
@@ -591,9 +593,9 @@ Simulation_impl::createStatisticsReport(void)
     for ( auto iter = compInfoMap.begin(); iter != compInfoMap.end(); iter++ ) {
         // Output subcomponent info
         const std::map<ComponentId_t, ComponentInfo>& subComponents = (*iter)->subComponents;
-        getSubComponentInfo(&subComponents);
+        getSubComponentInfo(&subComponents, myRank);
         // Output (parent) component info
-        writeComponentInfo(*iter);
+        writeComponentInfo(*iter, myRank);
         if (std::next(iter) != compInfoMap.end()) {
             fprintf(statFile, ",\n");
         } else {
@@ -613,13 +615,18 @@ Simulation_impl::createStatisticsReport(void)
 }
 
 bool
-Simulation_impl::openFile()
+Simulation_impl::openFile(const RankInfo& myRank)
 {
-    statFile = fopen(filePath.c_str(), "w");
+    struct stat st;
 
+    // Create StatReports directory if it doesn't exist
+    if ( stat(filePath.c_str(), &st) == -1 ) { mkdir(filePath.c_str(), 0700); }
+    filePath = filePath + "StatisticsReport-r" + std::to_string(myRank.rank) + "t" + std::to_string(myRank.thread) + ".json";
+    
+    statFile = fopen(filePath.c_str(), "w");
     if ( nullptr == statFile ) {
         sim_output.fatal(
-            CALL_INFO, 1, " : Simulation - Problem opening File %s - %s\n", filePath.c_str(),
+            CALL_INFO, 1, "Simulation - Problem opening file %s - %s\n", filePath.c_str(),
             strerror(errno));
         return false;
     }

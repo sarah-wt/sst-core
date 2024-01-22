@@ -245,9 +245,9 @@ do_link_preparation(ConfigGraph* graph, SST::Simulation_impl* sim, const RankInf
 }
 
 static void
-do_statreport_creation(SST::Simulation_impl* sim)
+do_statreport_creation(SST::Simulation_impl* sim, const RankInfo& myRank)
 {
-    sim->createStatisticsReport();
+    sim->createStatisticsReport(myRank);
 }
 
 // Returns the extension, or an empty string if there was no extension
@@ -376,7 +376,7 @@ start_simulation(uint32_t tid, SimThreadInfo_t& info, Core::ThreadSafe::Barrier&
     barrier.wait();
 
     // Create statistics report
-    do_statreport_creation(sim);
+    do_statreport_creation(sim, info.myRank);
     barrier.wait();
 
     if ( tid == 0 ) { delete info.graph; }

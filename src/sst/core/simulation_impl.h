@@ -171,9 +171,9 @@ public:
     int  performWireUp(ConfigGraph& graph, const RankInfo& myRank, SimTime_t min_part);
     void exchangeLinkInfo();
     /** Generate JSON report containing component and statistic info */
-    void createStatisticsReport();
-    void getSubComponentInfo(const std::map<ComponentId_t, ComponentInfo> *const subComponents);
-    void writeComponentInfo(const SST::ComponentInfo *const compInfo);
+    void createStatisticsReport(const RankInfo& myRank);
+    void getSubComponentInfo(const std::map<ComponentId_t, ComponentInfo> *const subComponents, const RankInfo& myRank);
+    void writeComponentInfo(const SST::ComponentInfo *const compInfo, const RankInfo& myRank);
 
     /** Set cycle count, which, if reached, will cause the simulation to halt. */
     void setStopAtCycle(Config* cfg);
@@ -510,7 +510,7 @@ public:
     friend void wait_my_turn_end();
 
 private:
-    bool openFile();
+    bool openFile(const RankInfo& myRank);
     void closeFile();
     void printIndent();
 
